@@ -1,7 +1,8 @@
-Create DATABASE PRREVIEW;
+-- Create Database and Use It
+CREATE DATABASE PRREVIEW;
 USE PRREVIEW;
 
--- Customer Table
+-- Customers Table
 CREATE TABLE Customers (
     customer_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -9,17 +10,17 @@ CREATE TABLE Customers (
     contact_info VARCHAR(15)
 );
 
--- Product Table
+-- Products Table
 CREATE TABLE Products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     category VARCHAR(50),
     price DECIMAL(10, 2),
-    description TEXT
+    description TEXT,
+    average_rating DECIMAL(3, 2) DEFAULT NULL -- Added this field for the trigger
 );
 
 -- Reviews Table
-
 CREATE TABLE Reviews (
     review_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT,
@@ -32,7 +33,6 @@ CREATE TABLE Reviews (
 );
 
 -- Ratings Table
-
 CREATE TABLE Ratings (
     rating_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT,
@@ -59,32 +59,43 @@ JOIN
     Products p ON r.product_id = p.product_id
 JOIN 
     Customers c ON r.customer_id = c.customer_id;
+    
+    
+DELIMITER //
 
-
--- Trigger to automatically update the average rating of a product after a new review is added or an existing review is updated
 CREATE TRIGGER UpdateAverageRating
-AFTER INSERT OR UPDATE ON Reviews
+AFTER INSERT ON Reviews
 FOR EACH ROW
 BEGIN
     DECLARE avg_rating DECIMAL(3,2);
+    
+    -- Calculate the new average rating for the product
     SELECT AVG(rating) INTO avg_rating FROM Reviews WHERE product_id = NEW.product_id;
+    
+    -- Update the average rating in the Products table
     UPDATE Products SET average_rating = avg_rating WHERE product_id = NEW.product_id;
-END;
+END //
+
+DELIMITER ;
 
 
 -- Trigger to ensure that any deletion or update in the Customers table is reflected in the Reviews table, preventing orphan records
+DELIMITER //
+
 CREATE TRIGGER MaintainReviewCustomer
-AFTER DELETE OR UPDATE ON Customers
+AFTER DELETE ON Customers
 FOR EACH ROW
 BEGIN
     IF OLD.customer_id IS NOT NULL THEN
         DELETE FROM Reviews WHERE customer_id = OLD.customer_id;
     END IF;
-END;
+END //
 
+DELIMITER ;
+
+-- Procedure to Analyze Customer Feedback
 DELIMITER //
 
--- Analyze Customer Feedback
 CREATE PROCEDURE AnalyzeCustomerFeedback()
 BEGIN
     -- Keyword Frequency Analysis
@@ -101,7 +112,7 @@ END //
 
 DELIMITER ;
 
--- Sentiment Scoring 
+-- Procedure for Sentiment Scoring 
 DELIMITER //
 
 CREATE PROCEDURE SentimentScoring()
@@ -121,8 +132,7 @@ END //
 
 DELIMITER ;
 
-
--- Identify Top-Rated Products
+-- Procedure to Identify Top-Rated Products
 DELIMITER //
 
 CREATE PROCEDURE IdentifyTopRatedProducts()
@@ -141,8 +151,7 @@ END //
 
 DELIMITER ;
 
-
--- Generate Sentiment Analysis Reports
+-- Procedure to Generate Sentiment Analysis Reports
 DELIMITER //
 
 CREATE PROCEDURE GenerateSentimentAnalysisReports()
@@ -168,7 +177,6 @@ END //
 
 DELIMITER ;
 
-
 -- Insert Values into Customers Table
 INSERT INTO Customers (name, email, contact_info) VALUES 
 ('John Doe', 'johndoe@example.com', '1234567890'),
@@ -187,28 +195,20 @@ INSERT INTO Reviews (product_id, customer_id, rating, review_text, review_date) 
 (2, 2, 4, 'Great phone with good battery life.', '2024-08-02'),
 (3, 3, 3, 'Average headphones, sound quality could be better.', '2024-08-03');
 
-
 -- Insert Values into Ratings Table
 INSERT INTO Ratings (product_id, customer_id, rating_value, rating_date) VALUES 
 (1, 1, 5, '2024-08-01'),
 (2, 2, 4, '2024-08-02'),
 (3, 3, 3, '2024-08-03');
 
-
- -- Call Analyze Customer Feedback Procedure
+-- Call Analyze Customer Feedback Procedure
 CALL AnalyzeCustomerFeedback();
 
--- Call IdentifyTopRatedProducts
+-- Call Identify Top-Rated Products Procedure
 CALL IdentifyTopRatedProducts();
 
--- Call GenerateSentimentAnalysisReports
+-- Call Generate Sentiment Analysis Reports Procedure
 CALL GenerateSentimentAnalysisReports();
 
--- View Table 
+-- View the ProductReviews View
 SELECT * FROM ProductReviews;
-
-
-
-
-
-
